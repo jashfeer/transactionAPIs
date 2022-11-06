@@ -19,7 +19,7 @@ func AddTransactions(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&transaction)
 	if err != nil {
 		fmt.Println(err)
-		json.NewEncoder(w).Encode(400)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -27,15 +27,15 @@ func AddTransactions(w http.ResponseWriter, r *http.Request) {
 	difference := timeNow.Sub(transaction.Timestamp)
 
 	if difference.Seconds() < 0 {
-		json.NewEncoder(w).Encode(422)
+		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	} else if difference.Seconds() > 60 {
-		json.NewEncoder(w).Encode(204)
+		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
 	transactions = append(transactions, transaction)
-	json.NewEncoder(w).Encode(201)
+	w.WriteHeader(http.StatusCreated)
 }
 
 //Geting statistics of transactions in last 60 seconds
@@ -47,6 +47,5 @@ func GetStatistics(w http.ResponseWriter, r *http.Request) {
 func DeleteTransactions(w http.ResponseWriter, r *http.Request) {
 
 	transactions = transactions[:0]
-	json.NewEncoder(w).Encode(204)
-
+	w.WriteHeader(http.StatusNoContent)
 }
