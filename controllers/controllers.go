@@ -24,6 +24,7 @@ func AddTransactions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	timeNow := time.Now().UTC()
+	fmt.Println("NOW: ", timeNow)
 	difference := timeNow.Sub(transaction.Timestamp)
 
 	if difference.Seconds() < 0 {
@@ -34,7 +35,30 @@ func AddTransactions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	transactions = append(transactions, transaction)
+	l := len(transactions)
+	if l == 0 {
+		transactions = append(transactions, transaction)
+	} else {
+		flg := true
+		for i, value := range transactions {
+			ok := transaction.Timestamp.Before(value.Timestamp)
+			if ok {
+				if i == 0 {
+					transactions = append([]models.Transaction{transaction}, transactions...)
+				} else {
+					transactions = append(transactions, transaction)
+					copy(transactions[i:], transactions[i-1:])
+					transactions[i] = transaction
+				}
+				flg = false
+				break
+			}
+		}
+		if flg {
+			transactions = append(transactions, transaction)
+		}
+	}
+
 	w.WriteHeader(http.StatusCreated)
 }
 
