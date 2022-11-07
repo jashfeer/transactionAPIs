@@ -10,6 +10,10 @@ import (
 )
 
 var transactions = []models.Transaction{}
+var amountInOrder = []models.Transaction{}
+var status models.Status
+var timesMap = make(map[time.Time]bool)
+var amountMap = make(map[float64]bool)
 
 //Adding transactions
 func AddTransactions(w http.ResponseWriter, r *http.Request) {
@@ -24,17 +28,19 @@ func AddTransactions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	timeNow := time.Now().UTC()
-	fmt.Println("NOW: ", timeNow)
+	fmt.Println("UTC time now: ", timeNow)
 	difference := timeNow.Sub(transaction.Timestamp)
+	ds := difference.Seconds()
 
-	if difference.Seconds() < 0 {
+	if ds < 0 {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
-	} else if difference.Seconds() > 60 {
+	} else if ds > 60 {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
+	// Set transaction time in ascending order
 	l := len(transactions)
 	if l == 0 {
 		transactions = append(transactions, transaction)
@@ -59,17 +65,36 @@ func AddTransactions(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Set transaction amount in ascending order
+	amountL := len(amountInOrder)
+	if amountL == 0 {
+		amountInOrder = append(amountInOrder, transaction)
+	} else {
+		flg := true
+		for i, value := range amountInOrder {
+			ok := transaction.Amount < value.Amount
+			if ok {
+				if i == 0 {
+					amountInOrder = append([]models.Transaction{transaction}, amountInOrder...)
+				} else {
+					amountInOrder = append(amountInOrder, transaction)
+					copy(amountInOrder[i:], amountInOrder[i-1:])
+					amountInOrder[i] = transaction
+				}
+				flg = false
+				break
+			}
+		}
+		if flg {
+			amountInOrder = append(amountInOrder, transaction)
+		}
+	}
+
+	//Updating Sum,Count,timeMap and amountMap
+	status.Sum += transaction.Amount
+	status.Count++
+	timesMap[transaction.Timestamp] = true
+	amountMap[transaction.Amount] = true
+
 	w.WriteHeader(http.StatusCreated)
-}
-
-//Geting statistics of transactions in last 60 seconds
-func GetStatistics(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("transactions:   ", transactions)
-}
-
-//Deleting all transactions
-func DeleteTransactions(w http.ResponseWriter, r *http.Request) {
-
-	transactions = transactions[:0]
-	w.WriteHeader(http.StatusNoContent)
 }
