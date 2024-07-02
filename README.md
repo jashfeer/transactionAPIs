@@ -1,6 +1,7 @@
 # transactionAPIs
 A RESTful API for transactions statistics. Its main use case is to calculate realtime statistics for the last 60 seconds of transactions.
 
+
 ## APIs
 ### 1. POST /transactions
 Called every time a transaction is made. It is also the sole input of this rest API.
